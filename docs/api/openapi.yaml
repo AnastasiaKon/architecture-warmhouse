@@ -1,0 +1,513 @@
+openapi: 3.0.3
+info:
+  title: WarmHouse Smart Home REST API
+  version: 1.0.0
+  description: REST API для управления домами, устройствами и сценариями экосистемы «Тёплый дом».
+
+servers:
+  - url: https://api.warmhouse.example.com/v1
+    description: Production API
+  - url: http://localhost:8080/v1
+    description: Local development API
+
+tags:
+  - name: Account Service
+  - name: Device Management Service
+  - name: Heating Service
+  - name: Lighting Service
+  - name: Gate Service
+  - name: Automation Service
+  - name: Telemetry Service
+
+paths:
+  /users:
+    post:
+      tags:
+        - Account Service
+      summary: Регистрация пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /houses:
+    post:
+      tags:
+        - Account Service
+      summary: Создание дома пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHouseRequest"
+      responses:
+        "201":
+          description: Дом создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/House"
+
+    get:
+      tags:
+        - Account Service
+      summary: Получение списка домов пользователя
+      responses:
+        "200":
+          description: Список домов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/House"
+
+  /devices:
+    post:
+      tags:
+        - Device Management Service
+      summary: Самостоятельное подключение устройства пользователем
+      description: Регистрирует устройство партнёра в экосистеме и привязывает его к дому/комнате.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+      responses:
+        "201":
+          description: Устройство зарегистрировано
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+
+    get:
+      tags:
+        - Device Management Service
+      summary: Получение списка устройств
+      parameters:
+        - name: houseId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Список устройств дома
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+
+  /heating/{deviceId}/target-temperature:
+    put:
+      tags:
+        - Heating Service
+      summary: Установка целевой температуры
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetTargetTemperatureRequest"
+      responses:
+        "202":
+          description: Команда принята в обработку
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAccepted"
+
+  /lighting/{deviceId}/state:
+    put:
+      tags:
+        - Lighting Service
+      summary: Включение или выключение света
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetLightStateRequest"
+      responses:
+        "202":
+          description: Команда принята в обработку
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAccepted"
+
+  /gates/{deviceId}/state:
+    put:
+      tags:
+        - Gate Service
+      summary: Открытие или закрытие ворот
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetGateStateRequest"
+      responses:
+        "202":
+          description: Команда принята в обработку
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAccepted"
+
+  /automation/rules:
+    post:
+      tags:
+        - Automation Service
+      summary: Создание сценария автоматизации
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutomationRuleRequest"
+      responses:
+        "201":
+          description: Сценарий создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationRule"
+
+    get:
+      tags:
+        - Automation Service
+      summary: Получение сценариев дома
+      parameters:
+        - name: houseId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Список сценариев
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AutomationRule"
+
+  /telemetry:
+    get:
+      tags:
+        - Telemetry Service
+      summary: Получение истории телеметрии устройства
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: История телеметрии
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TelemetryRecord"
+
+components:
+  schemas:
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - password
+        - fullName
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        fullName:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+
+    CreateHouseRequest:
+      type: object
+      required:
+        - name
+        - address
+        - region
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        region:
+          type: string
+
+    House:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        region:
+          type: string
+
+    RegisterDeviceRequest:
+      type: object
+      required:
+        - houseId
+        - deviceTypeId
+        - serialNumber
+        - name
+      properties:
+        houseId:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        deviceTypeId:
+          type: string
+          format: uuid
+        serialNumber:
+          type: string
+        name:
+          type: string
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        houseId:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        deviceTypeId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        serialNumber:
+          type: string
+        status:
+          type: string
+          enum:
+            - ONLINE
+            - OFFLINE
+            - ERROR
+
+    SetTargetTemperatureRequest:
+      type: object
+      required:
+        - temperature
+      properties:
+        temperature:
+          type: number
+          example: 22.5
+
+    SetLightStateRequest:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum:
+            - ON
+            - OFF
+
+    SetGateStateRequest:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum:
+            - OPEN
+            - CLOSED
+
+    CreateAutomationRuleRequest:
+      type: object
+      required:
+        - houseId
+        - name
+        - trigger
+        - actions
+      properties:
+        houseId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        trigger:
+          $ref: "#/components/schemas/AutomationTrigger"
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationCondition"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationAction"
+
+    AutomationRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        houseId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        enabled:
+          type: boolean
+
+    AutomationTrigger:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          example: TemperatureChanged
+
+    AutomationCondition:
+      type: object
+      properties:
+        field:
+          type: string
+          example: temperature
+        operator:
+          type: string
+          enum:
+            - EQ
+            - GT
+            - LT
+            - GTE
+            - LTE
+        value:
+          type: string
+          example: "18"
+
+    AutomationAction:
+      type: object
+      properties:
+        targetDeviceId:
+          type: string
+          format: uuid
+        commandType:
+          type: string
+          example: TurnHeatingOn
+        payload:
+          type: object
+          additionalProperties: true
+
+    CommandAccepted:
+      type: object
+      properties:
+        commandId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: ACCEPTED
+
+    TelemetryRecord:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        metricType:
+          type: string
+          example: temperature
+        metricValue:
+          type: number
+          example: 21.7
+        unit:
+          type: string
+          example: celsius
+        recordedAt:
+          type: string
+          format: date-time
