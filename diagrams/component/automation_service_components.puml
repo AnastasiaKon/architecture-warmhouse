@@ -1,0 +1,29 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Container(apiGateway, "API Gateway", "HTTP / REST", "Входная точка")
+Container(eventBroker, "Event Broker", "Kafka / RabbitMQ", "События и команды")
+ContainerDb(automationDb, "Automation DB", "PostgreSQL", "Сценарии и правила")
+
+Container_Boundary(automationService, "Automation Service") {
+    Component(ruleController, "RuleController", "REST Controller", "Создание и изменение сценариев")
+    Component(ruleEngine, "RuleEngine", "Service", "Выполнение правил автоматизации")
+    Component(triggerMatcher, "TriggerMatcher", "Service", "Сопоставляет события с триггерами")
+    Component(actionExecutor, "ActionExecutor", "Service", "Публикует команды для устройств")
+    Component(ruleRepository, "RuleRepository", "Repository", "Доступ к сценариям")
+    Component(eventHandler, "DeviceEventHandler", "Event Handler", "Получает события устройств")
+}
+
+Rel(apiGateway, ruleController, "Управляет сценариями", "REST")
+Rel(ruleController, ruleRepository, "Сохраняет правила")
+Rel(eventBroker, eventHandler, "DeviceEvent / TelemetryEvent", "Events")
+Rel(eventHandler, triggerMatcher, "Передаёт событие")
+Rel(triggerMatcher, ruleRepository, "Ищет подходящие правила")
+Rel(triggerMatcher, ruleEngine, "Передаёт найденные правила")
+Rel(ruleEngine, actionExecutor, "Запускает действия")
+Rel(actionExecutor, eventBroker, "Публикует команды устройствам", "Events")
+Rel(ruleRepository, automationDb, "Читает и пишет", "SQL")
+
+@enduml

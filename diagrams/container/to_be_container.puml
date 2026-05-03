@@ -1,0 +1,83 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(user, "Пользователь", "Владелец дома, управляет устройствами и сценариями")
+Person(support, "Служба поддержки", "Помогает пользователям подключать и настраивать систему")
+Person(partner, "Партнёр-производитель устройств", "Поставляет устройства, совместимые со стандартными протоколами")
+
+System_Ext(partnerDevices, "Партнёрские устройства", "Датчики, реле, камеры и другие устройства умного дома")
+System_Ext(pushProvider, "Push/SMS/Email Provider", "Внешний провайдер уведомлений")
+System_Ext(videoProvider, "Video Streaming Provider", "Внешний сервис потокового видео")
+
+System_Boundary(smartHome, "Экосистема «Тёплый дом»") {
+    Container(webApp, "Web / Mobile UI", "Web / Mobile", "Интерфейс самообслуживания для пользователей")
+    Container(apiGateway, "API Gateway", "HTTP / REST", "Единая входная точка для клиентских приложений")
+
+    Container(accountService, "Account Service", "Go", "Пользователи, дома, помещения, права доступа")
+    Container(deviceService, "Device Management Service", "Go", "Регистрация устройств, типы устройств, capabilities, привязка к дому")
+    Container(deviceGateway, "Device Gateway", "Go / MQTT / HTTP", "Подключение устройств и адаптеры стандартных протоколов")
+
+    Container(heatingService, "Heating Service", "Go", "Управление отоплением и температурными правилами")
+    Container(lightingService, "Lighting Service", "Go", "Управление освещением")
+    Container(gateService, "Gate Service", "Go", "Управление автоматическими воротами")
+    Container(videoService, "Video Surveillance Service", "Go", "Удалённое наблюдение и управление камерами")
+
+    Container(automationService, "Automation Service", "Go", "Пользовательские сценарии и правила автоматизации")
+    Container(telemetryService, "Telemetry Service", "Go", "Приём, обработка и хранение телеметрии")
+    Container(notificationService, "Notification Service", "Go", "Отправка уведомлений пользователям")
+
+    Container(eventBroker, "Event Broker", "Kafka / RabbitMQ", "События устройств, телеметрии, команд и сценариев")
+
+    ContainerDb(accountDb, "Account DB", "PostgreSQL", "Пользователи, дома, роли")
+    ContainerDb(deviceDb, "Device DB", "PostgreSQL", "Устройства, типы, capabilities")
+    ContainerDb(heatingDb, "Heating DB", "PostgreSQL", "Настройки отопления")
+    ContainerDb(lightingDb, "Lighting DB", "PostgreSQL", "Настройки освещения")
+    ContainerDb(gateDb, "Gate DB", "PostgreSQL", "Состояние и настройки ворот")
+    ContainerDb(videoDb, "Video DB", "PostgreSQL", "Камеры и доступы к видеопотокам")
+    ContainerDb(automationDb, "Automation DB", "PostgreSQL", "Сценарии автоматизации")
+    ContainerDb(telemetryDb, "Telemetry DB", "TimescaleDB / PostgreSQL", "История телеметрии")
+}
+
+Rel(user, webApp, "Использует", "HTTPS")
+Rel(support, webApp, "Поддерживает пользователей", "HTTPS")
+Rel(partner, partnerDevices, "Поставляет устройства")
+
+Rel(webApp, apiGateway, "Вызывает API", "HTTPS")
+
+Rel(apiGateway, accountService, "Пользователи, дома, доступы", "REST")
+Rel(apiGateway, deviceService, "Регистрация и настройка устройств", "REST")
+Rel(apiGateway, heatingService, "Команды отопления", "REST")
+Rel(apiGateway, lightingService, "Команды освещения", "REST")
+Rel(apiGateway, gateService, "Команды ворот", "REST")
+Rel(apiGateway, videoService, "Просмотр камер", "REST")
+Rel(apiGateway, automationService, "Сценарии", "REST")
+Rel(apiGateway, telemetryService, "История телеметрии", "REST")
+
+Rel(accountService, accountDb, "Читает и пишет", "SQL")
+Rel(deviceService, deviceDb, "Читает и пишет", "SQL")
+Rel(heatingService, heatingDb, "Читает и пишет", "SQL")
+Rel(lightingService, lightingDb, "Читает и пишет", "SQL")
+Rel(gateService, gateDb, "Читает и пишет", "SQL")
+Rel(videoService, videoDb, "Читает и пишет", "SQL")
+Rel(automationService, automationDb, "Читает и пишет", "SQL")
+Rel(telemetryService, telemetryDb, "Сохраняет телеметрию", "SQL")
+
+Rel(partnerDevices, deviceGateway, "Передают телеметрию и получают команды", "MQTT / HTTP")
+Rel(deviceGateway, deviceService, "Проверяет регистрацию и capabilities устройств", "REST")
+Rel(deviceGateway, eventBroker, "Публикует события устройств и телеметрию", "Events")
+Rel(deviceGateway, partnerDevices, "Отправляет команды устройствам", "MQTT / HTTP")
+
+Rel(heatingService, eventBroker, "Публикует команды отопления и слушает события", "Events")
+Rel(lightingService, eventBroker, "Публикует команды освещения и слушает события", "Events")
+Rel(gateService, eventBroker, "Публикует команды ворот и слушает события", "Events")
+Rel(videoService, videoProvider, "Получает видеопоток", "HTTPS/WebRTC")
+Rel(videoService, eventBroker, "Публикует события камер", "Events")
+
+Rel(telemetryService, eventBroker, "Подписывается на телеметрию", "Events")
+Rel(automationService, eventBroker, "Слушает события и публикует команды", "Events")
+Rel(notificationService, eventBroker, "Слушает события для уведомлений", "Events")
+Rel(notificationService, pushProvider, "Отправляет уведомления", "HTTPS")
+
+@enduml

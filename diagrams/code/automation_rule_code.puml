@@ -1,0 +1,55 @@
+@startuml
+
+class AutomationRule {
+  -String id
+  -String name
+  -String houseId
+  -Boolean enabled
+  +enable()
+  +disable()
+  +evaluate(event)
+}
+
+class Trigger {
+  -String eventType
+  -String deviceId
+  +matches(event)
+}
+
+class Condition {
+  -String field
+  -String operator
+  -String value
+  +isSatisfied(event)
+}
+
+class Action {
+  -String targetDeviceId
+  -String commandType
+  -String payload
+  +execute()
+}
+
+class DeviceEvent {
+  -String eventId
+  -String deviceId
+  -String eventType
+  -Date occurredAt
+}
+
+class DeviceCommand {
+  -String commandId
+  -String deviceId
+  -String commandType
+  -String payload
+}
+
+AutomationRule "1" -- "1..*" Trigger : has
+AutomationRule "1" -- "0..*" Condition : has
+AutomationRule "1" -- "1..*" Action : has
+
+Trigger --> DeviceEvent : matches
+Condition --> DeviceEvent : checks
+Action --> DeviceCommand : creates
+
+@enduml

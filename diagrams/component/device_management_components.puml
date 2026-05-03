@@ -1,0 +1,33 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Container(apiGateway, "API Gateway", "HTTP / REST", "Входная точка")
+Container(deviceGateway, "Device Gateway", "MQTT / HTTP", "Подключение устройств")
+ContainerDb(deviceDb, "Device DB", "PostgreSQL", "Устройства, типы, capabilities")
+Container(eventBroker, "Event Broker", "Kafka / RabbitMQ", "События устройств")
+
+Container_Boundary(deviceService, "Device Management Service") {
+    Component(deviceController, "DeviceController", "REST Controller", "Регистрация и настройка устройств")
+    Component(deviceTypeController, "DeviceTypeController", "REST Controller", "Управление типами устройств")
+    Component(onboardingService, "OnboardingService", "Service", "Самостоятельное подключение устройства пользователем")
+    Component(capabilityService, "CapabilityService", "Service", "Описание возможностей устройств")
+    Component(deviceRepository, "DeviceRepository", "Repository", "Доступ к данным устройств")
+    Component(eventPublisher, "DeviceEventPublisher", "Event Publisher", "Публикация событий регистрации и изменения устройств")
+}
+
+Rel(apiGateway, deviceController, "Регистрирует и настраивает устройство", "REST")
+Rel(apiGateway, deviceTypeController, "Получает типы устройств", "REST")
+Rel(deviceGateway, capabilityService, "Проверяет возможности устройства", "REST")
+
+Rel(deviceController, onboardingService, "Использует")
+Rel(deviceTypeController, capabilityService, "Использует")
+Rel(onboardingService, capabilityService, "Проверяет capabilities")
+Rel(onboardingService, deviceRepository, "Сохраняет устройство")
+Rel(capabilityService, deviceRepository, "Читает типы и capabilities")
+Rel(onboardingService, eventPublisher, "Публикует DeviceRegistered")
+Rel(eventPublisher, eventBroker, "Публикует события", "Events")
+Rel(deviceRepository, deviceDb, "Читает и пишет", "SQL")
+
+@enduml
