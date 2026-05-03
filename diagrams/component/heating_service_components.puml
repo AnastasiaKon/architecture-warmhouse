@@ -1,0 +1,30 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Container(apiGateway, "API Gateway", "HTTP / REST", "Входная точка")
+Container(eventBroker, "Event Broker", "Kafka / RabbitMQ", "События и команды")
+ContainerDb(heatingDb, "Heating DB", "PostgreSQL", "Настройки отопления")
+
+Container_Boundary(heatingService, "Heating Service") {
+    Component(heatingController, "HeatingController", "REST Controller", "Команды управления отоплением")
+    Component(heatingStateHandler, "HeatingStateHandler", "Event Handler", "Обрабатывает события состояния отопления")
+    Component(heatingCommandService, "HeatingCommandService", "Service", "Формирует команды для модулей отопления")
+    Component(temperatureRuleService, "TemperatureRuleService", "Service", "Правила поддержания температуры")
+    Component(heatingRepository, "HeatingRepository", "Repository", "Доступ к настройкам отопления")
+    Component(commandPublisher, "CommandPublisher", "Event Publisher", "Публикует команды отопления")
+}
+
+Rel(apiGateway, heatingController, "Управляет отоплением", "REST")
+Rel(heatingController, heatingCommandService, "Передаёт команду")
+Rel(heatingController, temperatureRuleService, "Настраивает правила")
+Rel(temperatureRuleService, heatingRepository, "Читает и пишет правила")
+Rel(heatingCommandService, heatingRepository, "Получает настройки")
+Rel(heatingCommandService, commandPublisher, "Публикует команду")
+Rel(commandPublisher, eventBroker, "HeatingCommandRequested", "Events")
+Rel(eventBroker, heatingStateHandler, "HeatingStateChanged", "Events")
+Rel(heatingStateHandler, heatingRepository, "Обновляет состояние", "SQL")
+Rel(heatingRepository, heatingDb, "Читает и пишет", "SQL")
+
+@enduml

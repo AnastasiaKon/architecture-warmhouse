@@ -1,0 +1,171 @@
+asyncapi: 2.6.0
+info:
+  title: WarmHouse Smart Home Event API
+  version: 1.0.0
+  description: Событийный API экосистемы «Тёплый дом» для телеметрии, команд и сценариев автоматизации.
+
+servers:
+  production:
+    url: broker.warmhouse.example.com:9092
+    protocol: kafka
+    description: Production event broker
+
+channels:
+  device.telemetry:
+    publish:
+      summary: Устройство публикует телеметрию
+      message:
+        $ref: "#/components/messages/TelemetryReceived"
+
+  device.state.changed:
+    publish:
+      summary: Устройство сообщает об изменении состояния
+      message:
+        $ref: "#/components/messages/DeviceStateChanged"
+
+  device.command.requested:
+    subscribe:
+      summary: Device Gateway получает команды для устройств
+      message:
+        $ref: "#/components/messages/DeviceCommandRequested"
+
+  automation.rule.triggered:
+    publish:
+      summary: Automation Service сообщает о срабатывании сценария
+      message:
+        $ref: "#/components/messages/AutomationRuleTriggered"
+
+components:
+  messages:
+    TelemetryReceived:
+      name: TelemetryReceived
+      title: Telemetry received
+      payload:
+        $ref: "#/components/schemas/TelemetryReceivedPayload"
+
+    DeviceStateChanged:
+      name: DeviceStateChanged
+      title: Device state changed
+      payload:
+        $ref: "#/components/schemas/DeviceStateChangedPayload"
+
+    DeviceCommandRequested:
+      name: DeviceCommandRequested
+      title: Device command requested
+      payload:
+        $ref: "#/components/schemas/DeviceCommandRequestedPayload"
+
+    AutomationRuleTriggered:
+      name: AutomationRuleTriggered
+      title: Automation rule triggered
+      payload:
+        $ref: "#/components/schemas/AutomationRuleTriggeredPayload"
+
+  schemas:
+    TelemetryReceivedPayload:
+      type: object
+      required:
+        - eventId
+        - deviceId
+        - metricType
+        - metricValue
+        - recordedAt
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+          format: uuid
+        houseId:
+          type: string
+          format: uuid
+        metricType:
+          type: string
+          example: temperature
+        metricValue:
+          type: number
+          example: 21.7
+        unit:
+          type: string
+          example: celsius
+        recordedAt:
+          type: string
+          format: date-time
+
+    DeviceStateChangedPayload:
+      type: object
+      required:
+        - eventId
+        - deviceId
+        - state
+        - occurredAt
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+          format: uuid
+        deviceType:
+          type: string
+          example: heating
+        state:
+          type: object
+          additionalProperties: true
+          example:
+            power: ON
+            targetTemperature: 22
+        occurredAt:
+          type: string
+          format: date-time
+
+    DeviceCommandRequestedPayload:
+      type: object
+      required:
+        - commandId
+        - deviceId
+        - commandType
+        - createdAt
+      properties:
+        commandId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+          format: uuid
+        commandType:
+          type: string
+          example: SetTargetTemperature
+        payload:
+          type: object
+          additionalProperties: true
+          example:
+            temperature: 22
+        createdAt:
+          type: string
+          format: date-time
+
+    AutomationRuleTriggeredPayload:
+      type: object
+      required:
+        - eventId
+        - ruleId
+        - houseId
+        - triggeredAt
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        ruleId:
+          type: string
+          format: uuid
+        houseId:
+          type: string
+          format: uuid
+        sourceEventId:
+          type: string
+          format: uuid
+        triggeredAt:
+          type: string
+          format: date-time

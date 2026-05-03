@@ -1,0 +1,148 @@
+@startuml
+hide circle
+skinparam linetype ortho
+
+entity "User" as users {
+  *id : UUID <<PK>>
+  --
+  email : varchar
+  password_hash : varchar
+  full_name : varchar
+  phone : varchar
+  created_at : timestamp
+}
+
+entity "House" as houses {
+  *id : UUID <<PK>>
+  --
+  owner_id : UUID <<FK>>
+  name : varchar
+  address : varchar
+  region : varchar
+  created_at : timestamp
+}
+
+entity "Room" as rooms {
+  *id : UUID <<PK>>
+  --
+  house_id : UUID <<FK>>
+  name : varchar
+  floor : int
+}
+
+entity "Partner" as partners {
+  *id : UUID <<PK>>
+  --
+  name : varchar
+  api_endpoint : varchar
+  protocol : varchar
+}
+
+entity "DeviceType" as device_types {
+  *id : UUID <<PK>>
+  --
+  partner_id : UUID <<FK>>
+  name : varchar
+  category : varchar
+  protocol : varchar
+  description : text
+}
+
+entity "DeviceCapability" as device_capabilities {
+  *id : UUID <<PK>>
+  --
+  device_type_id : UUID <<FK>>
+  capability_code : varchar
+  description : text
+}
+
+entity "Device" as devices {
+  *id : UUID <<PK>>
+  --
+  house_id : UUID <<FK>>
+  room_id : UUID <<FK>>
+  device_type_id : UUID <<FK>>
+  name : varchar
+  serial_number : varchar
+  status : varchar
+  firmware_version : varchar
+  connected_at : timestamp
+}
+
+entity "Telemetry" as telemetry {
+  *id : UUID <<PK>>
+  --
+  device_id : UUID <<FK>>
+  metric_type : varchar
+  metric_value : decimal
+  unit : varchar
+  recorded_at : timestamp
+}
+
+entity "DeviceCommand" as commands {
+  *id : UUID <<PK>>
+  --
+  device_id : UUID <<FK>>
+  command_type : varchar
+  payload : jsonb
+  status : varchar
+  created_at : timestamp
+  executed_at : timestamp
+}
+
+entity "AutomationRule" as rules {
+  *id : UUID <<PK>>
+  --
+  house_id : UUID <<FK>>
+  name : varchar
+  enabled : boolean
+  created_at : timestamp
+}
+
+entity "AutomationTrigger" as triggers {
+  *id : UUID <<PK>>
+  --
+  rule_id : UUID <<FK>>
+  device_id : UUID <<FK>>
+  event_type : varchar
+}
+
+entity "AutomationCondition" as conditions {
+  *id : UUID <<PK>>
+  --
+  rule_id : UUID <<FK>>
+  field : varchar
+  operator : varchar
+  value : varchar
+}
+
+entity "AutomationAction" as actions {
+  *id : UUID <<PK>>
+  --
+  rule_id : UUID <<FK>>
+  target_device_id : UUID <<FK>>
+  command_type : varchar
+  payload : jsonb
+}
+
+users ||--o{ houses : owns
+houses ||--o{ rooms : contains
+houses ||--o{ devices : has
+rooms ||--o{ devices : contains
+
+partners ||--o{ device_types : provides
+device_types ||--o{ device_capabilities : supports
+device_types ||--o{ devices : classifies
+
+devices ||--o{ telemetry : produces
+devices ||--o{ commands : receives
+
+houses ||--o{ rules : has
+rules ||--o{ triggers : has
+rules ||--o{ conditions : has
+rules ||--o{ actions : has
+
+devices ||--o{ triggers : triggers
+devices ||--o{ actions : target
+
+@enduml

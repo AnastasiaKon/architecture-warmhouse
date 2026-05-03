@@ -1,0 +1,27 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Container(apiGateway, "API Gateway", "HTTP / REST", "Входная точка")
+Container(eventBroker, "Event Broker", "Kafka / RabbitMQ", "События и команды")
+ContainerDb(lightingDb, "Lighting DB", "PostgreSQL", "Настройки освещения")
+
+Container_Boundary(lightingService, "Lighting Service") {
+    Component(lightingController, "LightingController", "REST Controller", "Включение и выключение света")
+    Component(lightingCommandService, "LightingCommandService", "Service", "Формирует команды освещения")
+    Component(lightingStateHandler, "LightingStateHandler", "Event Handler", "Обрабатывает события состояния света")
+    Component(lightingRepository, "LightingRepository", "Repository", "Доступ к настройкам освещения")
+    Component(commandPublisher, "CommandPublisher", "Event Publisher", "Публикует команды освещения")
+}
+
+Rel(apiGateway, lightingController, "Управляет светом", "REST")
+Rel(lightingController, lightingCommandService, "Передаёт команду")
+Rel(lightingCommandService, lightingRepository, "Получает настройки")
+Rel(lightingCommandService, commandPublisher, "Публикует команду")
+Rel(commandPublisher, eventBroker, "LightCommandRequested", "Events")
+Rel(eventBroker, lightingStateHandler, "LightStateChanged", "Events")
+Rel(lightingStateHandler, lightingRepository, "Обновляет состояние")
+Rel(lightingRepository, lightingDb, "Читает и пишет", "SQL")
+
+@enduml

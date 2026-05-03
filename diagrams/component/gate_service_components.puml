@@ -1,0 +1,29 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Container(apiGateway, "API Gateway", "HTTP / REST", "Входная точка")
+Container(eventBroker, "Event Broker", "Kafka / RabbitMQ", "События и команды")
+ContainerDb(gateDb, "Gate DB", "PostgreSQL", "Состояние ворот и права управления")
+
+Container_Boundary(gateService, "Gate Service") {
+    Component(gateController, "GateController", "REST Controller", "Открытие и закрытие ворот")
+    Component(accessPolicyService, "AccessPolicyService", "Service", "Проверяет права на управление воротами")
+    Component(gateCommandService, "GateCommandService", "Service", "Формирует команды воротам")
+    Component(gateStateHandler, "GateStateHandler", "Event Handler", "Обрабатывает состояние ворот")
+    Component(gateRepository, "GateRepository", "Repository", "Доступ к данным ворот")
+    Component(commandPublisher, "CommandPublisher", "Event Publisher", "Публикует команды ворот")
+}
+
+Rel(apiGateway, gateController, "Управляет воротами", "REST")
+Rel(gateController, accessPolicyService, "Проверяет доступ")
+Rel(gateController, gateCommandService, "Передаёт команду")
+Rel(gateCommandService, gateRepository, "Получает настройки")
+Rel(gateCommandService, commandPublisher, "Публикует команду")
+Rel(commandPublisher, eventBroker, "GateCommandRequested", "Events")
+Rel(eventBroker, gateStateHandler, "GateStateChanged", "Events")
+Rel(gateStateHandler, gateRepository, "Обновляет состояние")
+Rel(gateRepository, gateDb, "Читает и пишет", "SQL")
+
+@enduml

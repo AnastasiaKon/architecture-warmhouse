@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Container(apiGateway, "API Gateway", "HTTP / REST", "Входная точка")
+Container(eventBroker, "Event Broker", "Kafka / RabbitMQ", "События камер")
+ContainerDb(videoDb, "Video DB", "PostgreSQL", "Камеры, доступы, настройки")
+System_Ext(videoProvider, "Video Streaming Provider", "Потоковое видео")
+
+Container_Boundary(videoService, "Video Surveillance Service") {
+    Component(cameraController, "CameraController", "REST Controller", "Получение камер и ссылок на поток")
+    Component(streamAccessService, "StreamAccessService", "Service", "Выдаёт временный доступ к видеопотоку")
+    Component(cameraEventHandler, "CameraEventHandler", "Event Handler", "Обрабатывает события камер")
+    Component(cameraRepository, "CameraRepository", "Repository", "Доступ к данным камер")
+}
+
+Rel(apiGateway, cameraController, "Запрашивает просмотр камеры", "REST")
+Rel(cameraController, streamAccessService, "Получает ссылку на поток")
+Rel(streamAccessService, videoProvider, "Запрашивает видеопоток", "HTTPS/WebRTC")
+Rel(streamAccessService, cameraRepository, "Проверяет права доступа")
+Rel(eventBroker, cameraEventHandler, "CameraMotionDetected / CameraOffline", "Events")
+Rel(cameraEventHandler, cameraRepository, "Обновляет состояние камеры")
+Rel(cameraRepository, videoDb, "Читает и пишет", "SQL")
+
+@enduml
