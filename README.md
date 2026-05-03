@@ -170,6 +170,27 @@
 ```bash
 cd apps
 docker compose up --build
+```
+
+## Проверка temperature-api
+
+```bash
+curl "http://localhost:8081/temperature?location=Living%20Room"
+curl "http://localhost:8081/temperature/2"
+```
+
+## Проверка smart_home
+
+```bash
+curl http://localhost:8080/health
+```
+
+Также можно использовать Postman-коллекцию `smarthome-api.postman_collection.json` и выполнить:
+
+- Create Sensor
+- Get All Sensors
+
+При повторных вызовах `Get All Sensors` значение температуры меняется
 
 
 
