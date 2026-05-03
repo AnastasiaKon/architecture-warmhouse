@@ -101,87 +101,75 @@
 
 # Задание 2. Проектирование микросервисной архитектуры
 
-В этом задании вам нужно предоставить только диаграммы в модели C4. Мы не просим вас отдельно описывать получившиеся микросервисы и то, как вы определили взаимодействия между компонентами To-Be системы. Если вы правильно подготовите диаграммы C4, они и так это покажут.
-
 **Диаграмма контейнеров (Containers)**
 
-Добавьте диаграмму.
+[To-Be C4 Container Diagram](diagrams/container/to_be_container.puml)
 
 **Диаграмма компонентов (Components)**
 
-Добавьте диаграмму для каждого из выделенных микросервисов.
+- [Device Management Service Components](diagrams/component/device_management_components.puml)
+- [Heating Service Components](diagrams/component/heating_service_components.puml)
+- [Lighting Service Components](diagrams/component/lighting_service_components.puml)
+- [Gate Service Components](diagrams/component/gate_service_components.puml)
+- [Video Surveillance Service Components](diagrams/component/video_service_components.puml)
+- [Automation Service Components](diagrams/component/automation_service_components.puml)
+- [Telemetry Service Components](diagrams/component/telemetry_service_components.puml)
 
 **Диаграмма кода (Code)**
 
-Добавьте одну диаграмму или несколько.
+[Automation Rule Code Diagram](diagrams/code/automation_rule_code.puml)
 
 # Задание 3. Разработка ER-диаграммы
 
-Добавьте сюда ER-диаграмму. Она должна отражать ключевые сущности системы, их атрибуты и тип связей между ними.
+[Smart Home ER Diagram](diagrams/er/smart_home_er.puml)
+
+В диаграмме учтены: 
+- пользователи
+- дома и помещения
+- производители устройств
+- типы устройств и их возможности
+- конкретные устройства в домах (инсталяции)
+- телеметрия
+- команды устройствам
+- сценарии автоматизации
 
 # Задание 4. Создание и документирование API
 
 ### 1. Тип API
 
-Укажите, какой тип API вы будете использовать для взаимодействия микросервисов. Объясните своё решение.
+Для целевой микросервисной архитектуры используется комбинированный подход:
+
+- **REST API + OpenAPI** — для синхронных пользовательских операций: регистрация пользователей, управление домами, подключение устройств, создание сценариев, отправка команд управления отоплением, светом и воротами. Т.е. там, где мы ожидаем немедленный ответ
+- **Event-driven API + AsyncAPI** — для асинхронных взаимодействий между микросервисами: получение телеметрии, изменение состояния устройств, публикация команд устройствам, срабатывание сценариев автоматизации.
+
+Такой подход выбран потому, что пользовательские команды требуют понятного request/response интерфейса, а телеметрия и события умного дома являются потоками событий. Их лучше обрабатывать асинхронно через брокер сообщений. Это снижает связанность микросервисов и позволяет добавлять новые обработчики событий без изменения существующих сервисов. А также помогает невелировать проблемы с возможной пропажей связи и нестабильным соединением
 
 ### 2. Документация API
 
-Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+- [OpenAPI REST API specification](docs/api/openapi.yaml)
+- [AsyncAPI Event API specification](docs/api/asyncapi.yaml)
 
 # Задание 5. Работа с docker и docker-compose
 
-Перейдите в apps.
+Для выполнения задания добавлен отдельный сервис `temperature-api`.
 
-Там находится приложение-монолит для работы с датчиками температуры. В README.md описано как запустить решение.
+## Что реализовано
 
-Вам нужно:
+- Создано приложение `temperature-api` на Go.
+- Приложение предоставляет endpoint `/temperature?location=`.
+- Также поддержан endpoint `/temperature/{sensorId}`, который используется существующим приложением `smart_home`.
+- При каждом запросе сервис возвращает случайное значение температуры.
+- Сервис упакован в Docker.
+- В `docker-compose.yml` добавлены:
+  - `temperature-api` на порту `8081`;
+  - `postgres` со скриптом инициализации `./smart_home/init.sql`;
+  - существующее приложение `smart_home`, использующее `TEMPERATURE_API_URL=http://temperature-api:8081`.
 
-1) сделать простое приложение temperature-api на любом удобном для вас языке программирования, которое при запросе /temperature?location= будет отдавать рандомное значение температуры.
+## Запуск
 
-Locations - название комнаты, sensorId - идентификатор названия комнаты
+```bash
+cd apps
+docker compose up --build
 
-```
-	// If no location is provided, use a default based on sensor ID
-	if location == "" {
-		switch sensorID {
-		case "1":
-			location = "Living Room"
-		case "2":
-			location = "Bedroom"
-		case "3":
-			location = "Kitchen"
-		default:
-			location = "Unknown"
-		}
-	}
-
-	// If no sensor ID is provided, generate one based on location
-	if sensorID == "" {
-		switch location {
-		case "Living Room":
-			sensorID = "1"
-		case "Bedroom":
-			sensorID = "2"
-		case "Kitchen":
-			sensorID = "3"
-		default:
-			sensorID = "0"
-		}
-	}
-```
-
-2) Приложение следует упаковать в Docker и добавить в docker-compose. Порт по умолчанию должен быть 8081
-
-3) Кроме того для smart_home приложения требуется база данных - добавьте в docker-compose файл настройки для запуска postgres с указанием скрипта инициализации ./smart_home/init.sql
-
-Для проверки можно использовать Postman коллекцию smarthome-api.postman_collection.json и вызвать:
-
-- Create Sensor
-- Get All Sensors
-
-Должно при каждом вызове отображаться разное значение температуры
-
-Ревьюер будет проверять точно так же.
 
 
